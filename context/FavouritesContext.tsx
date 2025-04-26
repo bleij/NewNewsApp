@@ -1,35 +1,61 @@
-import { createContext, useContext, useState, ReactNode } from 'react';
+import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
-type Article = {
+interface Article {
   id: number;
   title: string;
   content: string;
-};
-
-type FavoritesContextType = {
-  favorites: Article[];
-  addToFavorites: (article: Article) => void;
-  removeFromFavorites: (article: Article) => void;
-};
-
-export const FavoritesContext = createContext<FavoritesContextType | undefined>(undefined);
-
-interface FavoritesProviderProps {
-  children: React.ReactNode;
 }
 
-export function FavoritesProvider({ children }: { children: ReactNode }) {
+interface FavoritesContextType {
+  favorites: Article[];
+  addToFavorites: (article: Article) => void;
+  removeFromFavorites: (articleId: number) => void;
+}
+
+const FavoritesContext = createContext<FavoritesContextType | undefined>(undefined);
+
+export const FavoritesProvider = ({ children }: { children: ReactNode }) => {
   const [favorites, setFavorites] = useState<Article[]>([]);
 
-  function addToFavorites(article: Article) {
+  const FAVORITES_STORAGE_KEY = 'FAVORITES_STORAGE_KEY';
+
+  useEffect(() => {
+    const loadFavorites = async () => {
+      try {
+        const storedFavorites = await AsyncStorage.getItem(FAVORITES_STORAGE_KEY);
+        if (storedFavorites) {
+          setFavorites(JSON.parse(storedFavorites));
+        }
+      } catch (error) {
+        console.error('Failed to load favorites:', error);
+      }
+    };
+
+    loadFavorites();
+  }, []);
+
+  useEffect(() => {
+    const saveFavorites = async () => {
+      try {
+        await AsyncStorage.setItem(FAVORITES_STORAGE_KEY, JSON.stringify(favorites));
+      } catch (error) {
+        console.error('Failed to save favorites:', error);
+      }
+    };
+
+    saveFavorites();
+  }, [favorites]);
+
+  const addToFavorites = (article: Article) => {
     setFavorites((prevFavorites) => {
-      const exists = prevFavorites.some((item) => item.id === article.id);
-      if (exists) {
+      const alreadyExists = prevFavorites.some((item) => item.id === article.id);
+      if (alreadyExists) {
         return prevFavorites;
       }
       return [...prevFavorites, article];
     });
-  }
+  };
 
   const removeFromFavorites = (articleId: number) => {
     setFavorites((prevFavorites) => prevFavorites.filter((item) => item.id !== articleId));
@@ -40,12 +66,12 @@ export function FavoritesProvider({ children }: { children: ReactNode }) {
       {children}
     </FavoritesContext.Provider>
   );
-}
+};
 
-export function useFavorites() {
+export const useFavorites = () => {
   const context = useContext(FavoritesContext);
-  if (!context) {
+  if (context === undefined) {
     throw new Error('useFavorites must be used within a FavoritesProvider');
   }
   return context;
-}
+};
