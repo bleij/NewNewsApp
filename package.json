@@ -22,6 +22,7 @@
     "@rn-primitives/avatar": "^1.1.0",
     "@rn-primitives/slot": "^1.1.0",
     "@roninoss/icons": "^0.0.4",
+    "axios": "^1.9.0",
     "class-variance-authority": "^0.7.0",
     "clsx": "^2.1.0",
     "expo": "^52.0.46",
